@@ -14,8 +14,8 @@ VERSION: 3.0
 
 
 Requirements: 
-* libhashcat 5.1.0
-* Python 3.6/7
+* libhashcat 6.1.1
+* Python 3.6+
 
 ### Install libhashcat and pyhashcat:
 
