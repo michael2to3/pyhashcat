@@ -1,6 +1,6 @@
 # pyhashcat
 
-`pyhashcat` is an updated Python C API binding to `libhashcat` for interfacing with hashcat version 6.2.6. This project builds upon the efforts of previous contributors @Rich5, @initiate6, and @f0cker, extending compatibility to Python 3.8 and beyond. 
+`pyhashcat` is an updated Python C API binding to `libhashcat` for interfacing with hashcat version 6.2.6. This project builds upon the efforts of previous contributors @Rich5, @initiate6, and @f0cker, extending compatibility to Python 3.8 and beyond.
 
 ## Original Contributions:
 - [@Rich5](https://github.com/Rich5/pyhashcat)
@@ -53,6 +53,22 @@ python simple_mask.py
 ```
 
 This script will execute a basic mask attack using `pyhashcat` and display the results.
+
+### Environment Variables for Custom Paths
+
+If `hashcat` or `python` was not found during installation, try setting the `HC_PATH` and `PY_PATH` environment variables to specify custom paths. For example:
+
+- **For Arch Linux:**
+  ```sh
+  export HC_PATH='/usr/share/hashcat/' PY_PATH='/usr/bin/'
+  ```
+
+- **For Other (adjust paths as needed):**
+  ```sh
+  export HC_PATH='/path/to/hashcat' PY_PATH='/path/to/python'
+  ```
+
+These variables allow `pyhashcat` to locate your `hashcat` and `python` installations if they are not in standard locations.
 
 ### Additional Help:
 

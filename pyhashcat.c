@@ -7,6 +7,7 @@
 #include <Python.h>
 #include <assert.h>
 #include <pthread.h>
+#include <stdlib.h>
 
 #include "structmember.h"
 #include "common.h"
@@ -512,8 +513,12 @@ Return 0 on successful thread creation, pthread error number otherwise");
 static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject * args, PyObject * kwargs)
 {
 
-  char *py_path = "/usr/bin/";
-  char *hc_path = "/usr/share/hashcat";
+  char *default_py_path = "/usr/bin/";
+  char *default_hc_path = "/usr/local/share/hashcat";
+
+  char *py_path = getenv("PY_PATH") != NULL ? getenv("PY_PATH") : default_py_path;
+  char *hc_path = getenv("HC_PATH") != NULL ? getenv("HC_PATH") : default_hc_path;
+
   static char *kwlist[] = {"py_path", "hc_path", NULL};
 
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|ss", kwlist, &py_path, &hc_path))
