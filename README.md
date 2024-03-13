@@ -18,7 +18,7 @@ This repository serves as a working directory aimed at porting and fixing compat
 1. **Clone this repository:**
    ```sh
    git clone https://github.com/michael2to3/pyhashcat.git
-   cd pyhashcat/pyhashcat
+   cd pyhashcat/
    ```
 
 2. **Clone and prepare hashcat:**
