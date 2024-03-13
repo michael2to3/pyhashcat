@@ -1,51 +1,64 @@
 # pyhashcat
 
-Python bindings for hashcat
-------
-Python C API binding to libhashcat, originally written by Rich5. Updated to use the latest Hashcat version, with additional functionality added. 
+`pyhashcat` is an updated Python C API binding to `libhashcat` for interfacing with hashcat version 6.2.6. This project builds upon the efforts of previous contributors @Rich5, @initiate6, and @f0cker, extending compatibility to Python 3.8 and beyond. 
 
+## Original Contributions:
+- [@Rich5](https://github.com/Rich5/pyhashcat)
+- [@initiate6](https://github.com/initiate6/pyhashcat)
+- [@f0cker](https://github.com/f0cker/pyhashcat)
 
-Pulled from here: https://github.com/Rich5/pyhashcat/tree/master/pyhashcat
-and ported to Python v3 here: https://github.com/initiate6/pyhashcat/tree/master/pyhashcat
+This repository serves as a working directory aimed at porting and fixing compatibility issues from Python 3.7 and hashcat 6.1.x to Python 3.8+ and hashcat 6.2.6.
 
-pyhashcat has been completely rewritten as a Python C extension to interface directly with libhashcat. The pyhashcat module now acts as direct bindings to hashcat.
+### Prerequisites:
+- hashcat 6.2.6
+- Python 3.8+
 
-VERSION: 3.0
+### Installation Steps:
 
+1. **Clone this repository:**
+   ```sh
+   git clone https://github.com/michael2to3/pyhashcat.git
+   cd pyhashcat/pyhashcat
+   ```
 
-Requirements: 
-* libhashcat 6.1.1
-* Python 3.6+
+2. **Clone and prepare hashcat:**
+   ```sh
+   git clone https://github.com/hashcat/hashcat.git
+   cd hashcat/
+   git checkout tags/v6.2.6
+   sudo make install_library
+   sudo make install
+   cd ..
+   ```
 
-### Install libhashcat and pyhashcat:
+3. **Build pyhashcat with specific directories:**
+   Before proceeding with the build and installation of `pyhashcat`, ensure that the LZMA SDK is installed on your system, as it is required for successful compilation.
+   
+   Execute the following command, adjusting paths as necessary for your environment:
+   ```sh
+   HC_SOURCES_DIR='hashcat/' HC_LIB_DIR=/usr/lib python setup.py build_ext -I /usr/share/lzma-sdk/C/
+   ```
 
+4. **Install pyhashcat:**
+   ```sh
+   sudo python setup.py install
+   ```
+
+### Testing the Installation:
+
+To verify that `pyhashcat` has been installed correctly and is functional, you can run a simple test script included in the repository:
+
+```sh
+python simple_mask.py
 ```
-git clone https://github.com/Rich5/pyHashcat.git
-cd pyhashcat/pyhashcat
-git clone https://github.com/hashcat/hashcat.git
-cd hashcat/
-sudo make install_library
-sudo make install
-cd ..
-python setup.py build_ext -R /usr/local/lib
-sudo python setup.py install
-```
 
-### Simple Test:
+This script will execute a basic mask attack using `pyhashcat` and display the results.
 
-```
-user@host:~/pyHashcat/pyhashcat$ python simple_mask.py
--------------------------------
----- Simple pyhashcat Test ----
--------------------------------
-[+] Running hashcat
-STATUS:  Cracked
-8743b52063cd84097a65d1633f5c74f5  -->  hashcat
-```
+### Additional Help:
 
-### Help:
+For more information on using `pyhashcat`, including its API and functionalities, refer to the help documentation within Python:
 
-```
+```python
 import pyhashcat
 help(pyhashcat)
 ```
