@@ -7,6 +7,7 @@
 #include <Python.h>
 #include <assert.h>
 #include <pthread.h>
+#include <stdlib.h>
 
 #include "structmember.h"
 #include "common.h"
@@ -498,11 +499,7 @@ static void *hc_session_exe_thread(void *params)
 {
 
  hashcatObject *self = (hashcatObject *) params;
- int rtn;
- rtn = hashcat_session_execute(self->hashcat_ctx);
-
- if(rtn)
-  rtn = rtn;
+ hashcat_session_execute(self->hashcat_ctx);
 
  return NULL;
 
@@ -516,8 +513,12 @@ Return 0 on successful thread creation, pthread error number otherwise");
 static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject * args, PyObject * kwargs)
 {
 
-  char *py_path = "/usr/bin/";
-  char *hc_path = "/usr/local/share/hashcat";
+  char *default_py_path = "/usr/bin/";
+  char *default_hc_path = "/usr/local/share/hashcat";
+
+  char *py_path = getenv("PY_PATH") != NULL ? getenv("PY_PATH") : default_py_path;
+  char *hc_path = getenv("HC_PATH") != NULL ? getenv("HC_PATH") : default_hc_path;
+
   static char *kwlist[] = {"py_path", "hc_path", NULL};
 
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|ss", kwlist, &py_path, &hc_path))
@@ -594,8 +595,8 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
       self->hc_argc = 2;
       hc_argv_size = self->hc_argc + 1;
       hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = PyUnicode_AsUTF8 (self->dict1);
+      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
+      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
       hc_argv[2] = NULL;
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
@@ -604,7 +605,7 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
       for (int i = 0; i < PyList_Size (self->rp_files); i++)
       {
 
-        self->user_options->rp_files[i] = PyUnicode_AsUTF8 (PyList_GetItem (self->rp_files, i));
+        self->user_options->rp_files[i] = (char *) PyUnicode_AsUTF8 (PyList_GetItem (self->rp_files, i));
       }
 
       break;
@@ -623,9 +624,9 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
       self->hc_argc = 3;
       hc_argv_size = self->hc_argc + 1;
       hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[2] = PyUnicode_AsUTF8 (self->dict2);
+      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
+      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
+      hc_argv[2] = (char *) PyUnicode_AsUTF8 (self->dict2);
       hc_argv[3] = NULL;
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
@@ -646,8 +647,8 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
       self->hc_argc = 2;
       hc_argv_size = self->hc_argc + 1;
       hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = PyUnicode_AsUTF8 (self->mask);
+      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
+      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->mask);
       hc_argv[2] = NULL;
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
@@ -676,9 +677,9 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
       self->hc_argc = 3;
       hc_argv_size = self->hc_argc + 1;
       hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[2] = PyUnicode_AsUTF8 (self->mask);
+      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
+      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
+      hc_argv[2] = (char *) PyUnicode_AsUTF8 (self->mask);
       hc_argv[3] = NULL;
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
@@ -706,9 +707,9 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
       self->hc_argc = 3;
       hc_argv_size = self->hc_argc + 1;
       hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = PyUnicode_AsUTF8 (self->mask);
-      hc_argv[2] = PyUnicode_AsUTF8 (self->dict1);
+      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
+      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->mask);
+      hc_argv[2] = (char *) PyUnicode_AsUTF8 (self->dict1);
       hc_argv[3] = NULL;
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
@@ -906,33 +907,6 @@ static PyObject *hashcat_status_get_status (hashcatObject * self, PyObject * noa
 
 PyDoc_STRVAR(hashcat_list_hashmodes__doc__,
 "Return dictionary containing all hash modes\n\n");
-
-typedef struct usage_sort
-{
-  u32   hash_mode;
-  char *hash_name;
-  u32   hash_category;
-
-} usage_sort_t;
-
-static int sort_by_usage (const void *p1, const void *p2)
-{
-  const usage_sort_t *u1 = (const usage_sort_t *) p1;
-  const usage_sort_t *u2 = (const usage_sort_t *) p2;
-
-  if (u1->hash_category > u2->hash_category) return  1;
-  if (u1->hash_category < u2->hash_category) return -1;
-
-  const int rc_name = strncmp (u1->hash_name + 1, u2->hash_name + 1, 15); // yes, strange...
-
-  if (rc_name > 0) return  1;
-  if (rc_name < 0) return -1;
-
-  if (u1->hash_mode > u2->hash_mode) return  1;
-  if (u1->hash_mode < u2->hash_mode) return -1;
-
-  return 0;
-}
 
 static PyObject *hashcat_list_hashmodes (hashcatObject * self, PyObject * noargs)
 {
@@ -2440,7 +2414,7 @@ static int hashcat_setcpu_affinity (hashcatObject * self, PyObject * value, void
   }
 
   Py_INCREF (value);
-  self->user_options->cpu_affinity = PyUnicode_AsUTF8 (value);
+  self->user_options->cpu_affinity = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -2482,7 +2456,7 @@ static int hashcat_setcustom_charset_1 (hashcatObject * self, PyObject * value, 
   }
 
   Py_INCREF (value);
-  self->user_options->custom_charset_1 = PyUnicode_AsUTF8 (value);
+  self->user_options->custom_charset_1 = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -2524,7 +2498,7 @@ static int hashcat_setcustom_charset_2 (hashcatObject * self, PyObject * value, 
   }
 
   Py_INCREF (value);
-  self->user_options->custom_charset_2 = PyUnicode_AsUTF8 (value);
+  self->user_options->custom_charset_2 = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -2566,7 +2540,7 @@ static int hashcat_setcustom_charset_3 (hashcatObject * self, PyObject * value, 
   }
 
   Py_INCREF (value);
-  self->user_options->custom_charset_3 = PyUnicode_AsUTF8 (value);
+  self->user_options->custom_charset_3 = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -2608,7 +2582,7 @@ static int hashcat_setcustom_charset_4 (hashcatObject * self, PyObject * value, 
   }
 
   Py_INCREF (value);
-  self->user_options->custom_charset_4 = PyUnicode_AsUTF8 (value);
+  self->user_options->custom_charset_4 = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -2650,7 +2624,7 @@ static int hashcat_setdebug_file (hashcatObject * self, PyObject * value, void *
   }
 
   Py_INCREF (value);
-  self->user_options->debug_file = PyUnicode_AsUTF8 (value);
+  self->user_options->debug_file = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -3186,7 +3160,7 @@ static int hashcat_setinduction_dir (hashcatObject * self, PyObject * value, voi
   }
 
   Py_INCREF (value);
-  self->user_options->induction_dir = PyUnicode_AsUTF8 (value);
+  self->user_options->induction_dir = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -3744,7 +3718,7 @@ static int hashcat_setmarkov_hcstat2 (hashcatObject * self, PyObject * value, vo
   }
 
   Py_INCREF (value);
-  self->user_options->markov_hcstat2 = PyUnicode_AsUTF8 (value);
+  self->user_options->markov_hcstat2 = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -3862,7 +3836,7 @@ static int hashcat_setopencl_device_types (hashcatObject * self, PyObject * valu
   }
 
   Py_INCREF (value);
-  self->user_options->opencl_device_types = PyUnicode_AsUTF8 (value);
+  self->user_options->opencl_device_types = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -3904,7 +3878,7 @@ static int hashcat_setbackend_devices (hashcatObject * self, PyObject * value, v
   }
 
   Py_INCREF (value);
-  self->user_options->backend_devices = PyUnicode_AsUTF8 (value);
+  self->user_options->backend_devices = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -4081,7 +4055,7 @@ static int hashcat_setoutfile (hashcatObject * self, PyObject * value, void *clo
   }
 
   Py_INCREF (value);
-  self->user_options->outfile = PyUnicode_AsUTF8 (value);
+  self->user_options->outfile = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -4174,7 +4148,7 @@ static int hashcat_setoutfile_check_dir (hashcatObject * self, PyObject * value,
   }
 
   Py_INCREF (value);
-  self->user_options->outfile_check_dir = PyUnicode_AsUTF8 (value);
+  self->user_options->outfile_check_dir = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -4354,7 +4328,7 @@ static int hashcat_setpotfile_path (hashcatObject * self, PyObject * value, void
   }
 
   Py_INCREF (value);
-  self->user_options->potfile_path = PyUnicode_AsUTF8 (value);
+  self->user_options->potfile_path = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -4633,7 +4607,7 @@ static int hashcat_setrestore_file_path (hashcatObject * self, PyObject * value,
   }
 
   Py_INCREF (value);
-  self->user_options->restore_file_path = PyUnicode_AsUTF8 (value);
+  self->user_options->restore_file_path = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -4895,7 +4869,7 @@ static int hashcat_setrule_buf_l(hashcatObject * self, PyObject * value, void *c
   }
 
   Py_INCREF(value);
-  self->user_options->rule_buf_l = PyUnicode_AsUTF8(value);
+  self->user_options->rule_buf_l = (char *) PyUnicode_AsUTF8(value);
 
   return 0;
 
@@ -4937,7 +4911,7 @@ static int hashcat_setrule_buf_r(hashcatObject * self, PyObject * value, void *c
   }
 
   Py_INCREF(value);
-  self->user_options->rule_buf_r = PyUnicode_AsUTF8 (value);
+  self->user_options->rule_buf_r = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -5058,7 +5032,7 @@ PyDoc_STRVAR(separator__doc__,
 static PyObject *hashcat_getseparator(hashcatObject * self)
 {
 
-  return Py_BuildValue("c", self->user_options->separator);
+  return Py_BuildValue("s", self->user_options->separator);
 
 }
 
@@ -5080,11 +5054,7 @@ static int hashcat_setseparator(hashcatObject * self, PyObject * value, void *cl
     return -1;
   }
 
-  char sep;
-
-  sep = (PyUnicode_ReadChar(value, 0));
-
-  self->user_options->separator = (char) sep;
+  self->user_options->separator = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -5226,7 +5196,7 @@ static int hashcat_setbrain_host (hashcatObject * self, PyObject * value, void *
   }
 
   Py_INCREF (value);
-  self->user_options->brain_host = PyUnicode_AsUTF8 (value);
+  self->user_options->brain_host = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -5384,7 +5354,7 @@ static int hashcat_setbrain_password (hashcatObject * self, PyObject * value, vo
   }
 
   Py_INCREF (value);
-  self->user_options->brain_password = PyUnicode_AsUTF8 (value);
+  self->user_options->brain_password = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -5430,7 +5400,7 @@ static int hashcat_setbrain_session_whitelist (hashcatObject * self, PyObject * 
   }
 
   Py_INCREF (value);
-  self->user_options->brain_session_whitelist = PyUnicode_AsUTF8 (value);
+  self->user_options->brain_session_whitelist = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -5487,7 +5457,7 @@ static int hashcat_setsession (hashcatObject * self, PyObject * value, void *clo
   }
 
   Py_INCREF (value);
-  self->user_options->session = PyUnicode_AsUTF8 (value);
+  self->user_options->session = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -5716,7 +5686,7 @@ static int hashcat_settruecrypt_keyfiles (hashcatObject * self, PyObject * value
   }
 
   Py_INCREF (value);
-  self->user_options->truecrypt_keyfiles = PyUnicode_AsUTF8 (value);
+  self->user_options->truecrypt_keyfiles = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -5858,7 +5828,7 @@ static int hashcat_setveracrypt_keyfiles (hashcatObject * self, PyObject * value
   }
 
   Py_INCREF (value);
-  self->user_options->veracrypt_keyfiles = PyUnicode_AsUTF8 (value);
+  self->user_options->veracrypt_keyfiles = (char *) PyUnicode_AsUTF8 (value);
 
   return 0;
 
@@ -6227,10 +6197,12 @@ PyMODINIT_FUNC PyInit_pyhashcat(void)
 
   PyObject *m;
 
+  #if PY_VERSION_HEX < 0x03070000
   if(!PyEval_ThreadsInitialized())
   {
     PyEval_InitThreads();
   }
+  #endif
 
   if (PyType_Ready(&hashcat_Type) < 0)
     return NULL;
