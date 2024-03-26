@@ -581,7 +581,7 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
     }
     return Py_BuildValue ("i", rtn);
 
-  } else if (self->hash == NULL) {
+  } else if (self->hash == NULL && !self->user_options->keyspace) {
 
     PyErr_SetString (PyExc_RuntimeError, "Hash source not set");
     Py_INCREF (Py_None);
