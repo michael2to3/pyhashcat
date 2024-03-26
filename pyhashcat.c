@@ -593,12 +593,24 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 2;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[2] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 2;
+        hc_argv_size = self->hc_argc + 1;
+        hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
+        hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
+        hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
+        hc_argv[2] = NULL;
+      }
+      else
+      {
+        self->hc_argc = 1;
+        hc_argv_size = self->hc_argc + 1;
+        hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
+        hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->dict1);
+        hc_argv[1] = NULL;
+      }
+
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
 
