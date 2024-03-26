@@ -5420,6 +5420,12 @@ static int hashcat_setbrain_session_whitelist (hashcatObject * self, PyObject * 
 
 }
 
+// getter - words_base
+static PyObject *hashcat_getwords_base (hashcatObject * self)
+{
+  return Py_BuildValue("k", self->hashcat_ctx->status_ctx->words_base);
+}
+
 PyDoc_STRVAR(status_get_brain_rx_all__doc__,
 "status_get_brain_rx_all(device_id) -> str\n\n\
 Return total combine brain traffic of all devices.\n\n");
@@ -6158,6 +6164,7 @@ static PyGetSetDef hashcat_getseters[] = {
   {"brain_session", (getter) hashcat_getbrain_session, (setter) hashcat_setbrain_session, brain_session__doc__, NULL},
   {"brain_session_whitelist", (getter) hashcat_getbrain_session_whitelist, (setter) hashcat_setbrain_session_whitelist, brain_session_whitelist__doc__, NULL},
   #endif
+  {"words_base", (getter) hashcat_getwords_base, NULL, NULL, NULL},
   {NULL},
 };
 
