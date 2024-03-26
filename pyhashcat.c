@@ -45,6 +45,7 @@ typedef struct
   user_options_t *user_options;
   hashcat_status_t *hashcat_status;
   int rc_init;
+  bool no_threading;
 
   PyObject *hash;
   PyObject *mask;
@@ -451,6 +452,9 @@ static hashcatObject *newhashcatObject (PyObject * arg)
     PyTuple_SET_ITEM(self->event_types, i, Py_BuildValue ("s", event_strs[i]));
 
   }
+
+  self->no_threading = false;
+
   return self;
 
 }
@@ -558,16 +562,23 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
     }
 
     int rtn;
-    pthread_t hThread;
 
-    Py_BEGIN_ALLOW_THREADS
+    if (self->no_threading)
+    {
+      rtn = hashcat_session_execute(self->hashcat_ctx);
+    }
+    else
+    {
+      pthread_t hThread;
 
-    rtn = pthread_create(&hThread, NULL, &hc_session_exe_thread, (void *)self);
+      Py_BEGIN_ALLOW_THREADS
 
-    Py_END_ALLOW_THREADS
+      rtn = pthread_create(&hThread, NULL, &hc_session_exe_thread, (void *)self);
 
-    //usage_big_print (self->hashcat_ctx);
+      Py_END_ALLOW_THREADS
 
+      //usage_big_print (self->hashcat_ctx);
+    }
     return Py_BuildValue ("i", rtn);
 
   } else if (self->hash == NULL) {
@@ -766,14 +777,18 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
   }
 
   int rtn;
-  pthread_t hThread;
 
-  Py_BEGIN_ALLOW_THREADS
+  if(self->no_threading){
+    rtn = hashcat_session_execute(self->hashcat_ctx);
+  } else {
+    pthread_t hThread;
 
-  rtn = pthread_create(&hThread, NULL, &hc_session_exe_thread, (void *)self);
+    Py_BEGIN_ALLOW_THREADS
 
-  Py_END_ALLOW_THREADS
+    rtn = pthread_create(&hThread, NULL, &hc_session_exe_thread, (void *)self);
 
+    Py_END_ALLOW_THREADS
+  }
 
   return Py_BuildValue ("i", rtn);
 }
@@ -2004,6 +2019,22 @@ static PyObject *hashcat_status_get_runtime_msec_dev (hashcatObject * self, PyOb
   rtn = status_get_runtime_msec_dev (self->hashcat_ctx, device_id);
   return Py_BuildValue ("d", rtn);
 
+}
+
+static PyObject *getno_threading (hashcatObject * self)
+{
+  return Py_BuildValue ("p", self->no_threading);
+}
+
+static int setno_threading (hashcatObject * self, PyObject * value)
+{
+  if (value == NULL)
+  {
+    PyErr_SetString (PyExc_TypeError, "Cannot delete no_threading attribute");
+    return -1;
+  }
+  self->no_threading = PyObject_IsTrue(value);
+  return 0;
 }
 
 
@@ -6069,7 +6100,7 @@ static PyMethodDef hashcat_methods[] = {
 
 
 static PyGetSetDef hashcat_getseters[] = {
-
+  {"no_threading", (getter) getno_threading, (setter) setno_threading, NULL, NULL},
   {"hash", (getter) hashcat_gethash, (setter) hashcat_sethash, hash__doc__, NULL},
   {"dict1", (getter) hashcat_getdict1, (setter) hashcat_setdict1, dict1__doc__, NULL},
   {"dict2", (getter) hashcat_getdict2, (setter) hashcat_setdict2, dict2__doc__, NULL},
