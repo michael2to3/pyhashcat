@@ -17,6 +17,7 @@
 #include "status.h"
 #include "user_options.h"
 #include "hashcat.h"
+#include "straight.h"
 #include "interface.h"
 #include "shared.h"
 #include "usage.h"
@@ -5952,7 +5953,12 @@ static int hashcat_setworkload_profile (hashcatObject * self, PyObject * value, 
 
 }
 
-
+PyDoc_STRVAR(straight_ctx_init__doc__,
+"straight_ctx_init\tint\tinitilizes straight_ctx_t\n\n");
+/* static int hashcat_straight_ctx_init(hashcatObject *self) */
+/* { */
+/*   return straight_ctx_init((self->hashcat_ctx); */
+/* } */
 
 /* method array */
 
@@ -6039,6 +6045,7 @@ static PyMethodDef hashcat_methods[] = {
   {"status_get_runtime_msec_dev", (PyCFunction) hashcat_status_get_runtime_msec_dev, METH_VARARGS, status_get_runtime_msec_dev__doc__},
   {"status_get_brain_rx_all", (PyCFunction) hashcat_status_get_brain_rx_all, METH_NOARGS, status_get_brain_rx_all__doc__},
   {"hashcat_list_hashmodes", (PyCFunction) hashcat_list_hashmodes, METH_NOARGS, hashcat_list_hashmodes__doc__},
+  {"straight_ctx_init", (PyCFunction) straight_ctx_init, METH_NOARGS, straight_ctx_init__doc__},
   {NULL, NULL, 0, NULL},
 };
 
