@@ -17,10 +17,10 @@
 #include "status.h"
 #include "user_options.h"
 #include "hashcat.h"
-#include "straight.h"
 #include "interface.h"
 #include "shared.h"
 #include "usage.h"
+#include "stdarg.h"
 
 #ifndef MAXH
 #define MAXH 100
@@ -510,6 +510,22 @@ static void *hc_session_exe_thread(void *params)
 
 }
 
+static void rebuild_hc_args(char **hc_argv, int arg_count, ...)
+{
+  hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (arg_count + 1));
+
+  va_list argptr;
+  va_start(argptr, arg_count);
+
+  for(int i = 0; i < arg_count; ++i){
+    hc_argv[i] = (char *) PyUnicode_AsUTF8(va_arg(argptr, PyObject*));
+  }
+
+  va_end(argptr);  
+
+  hc_argv[arg_count] = NULL;
+}
+
 PyDoc_STRVAR(hashcat_session_execute__doc__,
 "hashcat_session_execute -> int\n\n\
 Start hashcat cracking session in background thread.\n\n\
@@ -607,19 +623,12 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
       if (!self->user_options->keyspace)
       {
         self->hc_argc = 2;
-        hc_argv_size = self->hc_argc + 1;
-        hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-        hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-        hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
-        hc_argv[2] = NULL;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->dict1);
       }
       else
       {
         self->hc_argc = 1;
-        hc_argv_size = self->hc_argc + 1;
-        hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-        hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->dict1);
-        hc_argv[1] = NULL;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->dict1);
       }
 
       self->user_options->hc_argc = self->hc_argc;
@@ -645,13 +654,16 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 3;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[2] = (char *) PyUnicode_AsUTF8 (self->dict2);
-      hc_argv[3] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 3;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->dict1, self->dict2);
+      }
+      else
+      {
+        self->hc_argc = 2;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->dict1, self->dict2);
+      }
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
 
@@ -668,12 +680,16 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 2;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->mask);
-      hc_argv[2] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 2;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->mask);
+      }
+      else
+      {
+        self->hc_argc = 1;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->mask);
+      }
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
 
@@ -698,13 +714,17 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 3;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[2] = (char *) PyUnicode_AsUTF8 (self->mask);
-      hc_argv[3] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 3;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->dict1, self->mask);
+      }
+      else
+      {
+        self->hc_argc = 2;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->dict1, self->mask);
+      }
+
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
       break;
@@ -728,13 +748,17 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 3;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->mask);
-      hc_argv[2] = (char *) PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[3] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 3;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->mask, self->dict1);
+      }
+      else
+      {
+        self->hc_argc = 2;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->mask, self->dict1);
+      }
+
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
 
@@ -3370,7 +3394,6 @@ static int hashcat_setkeyspace (hashcatObject * self, PyObject * value, void *cl
 
     Py_INCREF (value);
     self->user_options->keyspace = 1;
-
   }
   else
   {
@@ -6002,13 +6025,6 @@ static int hashcat_setworkload_profile (hashcatObject * self, PyObject * value, 
 
 }
 
-PyDoc_STRVAR(straight_ctx_init__doc__,
-"straight_ctx_init\tint\tinitilizes straight_ctx_t\n\n");
-/* static int hashcat_straight_ctx_init(hashcatObject *self) */
-/* { */
-/*   return straight_ctx_init((self->hashcat_ctx); */
-/* } */
-
 /* method array */
 
 static PyMethodDef hashcat_methods[] = {
@@ -6094,7 +6110,6 @@ static PyMethodDef hashcat_methods[] = {
   {"status_get_runtime_msec_dev", (PyCFunction) hashcat_status_get_runtime_msec_dev, METH_VARARGS, status_get_runtime_msec_dev__doc__},
   {"status_get_brain_rx_all", (PyCFunction) hashcat_status_get_brain_rx_all, METH_NOARGS, status_get_brain_rx_all__doc__},
   {"hashcat_list_hashmodes", (PyCFunction) hashcat_list_hashmodes, METH_NOARGS, hashcat_list_hashmodes__doc__},
-  {"straight_ctx_init", (PyCFunction) straight_ctx_init, METH_NOARGS, straight_ctx_init__doc__},
   {NULL, NULL, 0, NULL},
 };
 
