@@ -2267,6 +2267,7 @@ static int hashcat_setattack_mode (hashcatObject * self, PyObject * value, void 
 
   Py_INCREF (value);
   self->user_options->attack_mode = PyLong_AsLong (value);
+  self->user_options->attack_mode_chgd = true;
 
   return 0;
 
@@ -6025,6 +6026,15 @@ static int hashcat_setworkload_profile (hashcatObject * self, PyObject * value, 
 
 }
 
+static PyObject *get_event_log_msg(hashcatObject * self)
+{
+  if (self->hashcat_ctx->event_ctx->msg_len)
+    return Py_BuildValue ("s", self->hashcat_ctx->event_ctx->msg_buf);
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
 /* method array */
 
 static PyMethodDef hashcat_methods[] = {
@@ -6110,6 +6120,7 @@ static PyMethodDef hashcat_methods[] = {
   {"status_get_runtime_msec_dev", (PyCFunction) hashcat_status_get_runtime_msec_dev, METH_VARARGS, status_get_runtime_msec_dev__doc__},
   {"status_get_brain_rx_all", (PyCFunction) hashcat_status_get_brain_rx_all, METH_NOARGS, status_get_brain_rx_all__doc__},
   {"hashcat_list_hashmodes", (PyCFunction) hashcat_list_hashmodes, METH_NOARGS, hashcat_list_hashmodes__doc__},
+  {"get_event_log_msg", (PyCFunction) get_event_log_msg, METH_NOARGS, NULL},
   {NULL, NULL, 0, NULL},
 };
 
