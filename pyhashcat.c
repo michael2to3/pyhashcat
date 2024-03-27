@@ -20,6 +20,7 @@
 #include "interface.h"
 #include "shared.h"
 #include "usage.h"
+#include "stdarg.h"
 
 #ifndef MAXH
 #define MAXH 100
@@ -44,6 +45,7 @@ typedef struct
   user_options_t *user_options;
   hashcat_status_t *hashcat_status;
   int rc_init;
+  bool no_threading;
 
   PyObject *hash;
   PyObject *mask;
@@ -450,6 +452,9 @@ static hashcatObject *newhashcatObject (PyObject * arg)
     PyTuple_SET_ITEM(self->event_types, i, Py_BuildValue ("s", event_strs[i]));
 
   }
+
+  self->no_threading = false;
+
   return self;
 
 }
@@ -505,6 +510,22 @@ static void *hc_session_exe_thread(void *params)
 
 }
 
+static void rebuild_hc_args(char **hc_argv, int arg_count, ...)
+{
+  hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (arg_count + 1));
+
+  va_list argptr;
+  va_start(argptr, arg_count);
+
+  for(int i = 0; i < arg_count; ++i){
+    hc_argv[i] = (char *) PyUnicode_AsUTF8(va_arg(argptr, PyObject*));
+  }
+
+  va_end(argptr);  
+
+  hc_argv[arg_count] = NULL;
+}
+
 PyDoc_STRVAR(hashcat_session_execute__doc__,
 "hashcat_session_execute -> int\n\n\
 Start hashcat cracking session in background thread.\n\n\
@@ -557,19 +578,26 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
     }
 
     int rtn;
-    pthread_t hThread;
 
-    Py_BEGIN_ALLOW_THREADS
+    if (self->no_threading)
+    {
+      rtn = hashcat_session_execute(self->hashcat_ctx);
+    }
+    else
+    {
+      pthread_t hThread;
 
-    rtn = pthread_create(&hThread, NULL, &hc_session_exe_thread, (void *)self);
+      Py_BEGIN_ALLOW_THREADS
 
-    Py_END_ALLOW_THREADS
+      rtn = pthread_create(&hThread, NULL, &hc_session_exe_thread, (void *)self);
 
-    //usage_big_print (self->hashcat_ctx);
+      Py_END_ALLOW_THREADS
 
+      //usage_big_print (self->hashcat_ctx);
+    }
     return Py_BuildValue ("i", rtn);
 
-  } else if (self->hash == NULL) {
+  } else if (self->hash == NULL && !self->user_options->keyspace) {
 
     PyErr_SetString (PyExc_RuntimeError, "Hash source not set");
     Py_INCREF (Py_None);
@@ -592,12 +620,17 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 2;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[2] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 2;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->dict1);
+      }
+      else
+      {
+        self->hc_argc = 1;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->dict1);
+      }
+
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
 
@@ -621,13 +654,16 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 3;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[2] = (char *) PyUnicode_AsUTF8 (self->dict2);
-      hc_argv[3] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 3;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->dict1, self->dict2);
+      }
+      else
+      {
+        self->hc_argc = 2;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->dict1, self->dict2);
+      }
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
 
@@ -644,12 +680,16 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 2;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->mask);
-      hc_argv[2] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 2;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->mask);
+      }
+      else
+      {
+        self->hc_argc = 1;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->mask);
+      }
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
 
@@ -674,13 +714,17 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 3;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[2] = (char *) PyUnicode_AsUTF8 (self->mask);
-      hc_argv[3] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 3;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->dict1, self->mask);
+      }
+      else
+      {
+        self->hc_argc = 2;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->dict1, self->mask);
+      }
+
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
       break;
@@ -704,13 +748,17 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
         return Py_None;
       }
 
-      self->hc_argc = 3;
-      hc_argv_size = self->hc_argc + 1;
-      hc_argv = (char **) realloc (hc_argv, sizeof (char *) * (hc_argv_size));
-      hc_argv[0] = (char *) PyUnicode_AsUTF8 (self->hash);
-      hc_argv[1] = (char *) PyUnicode_AsUTF8 (self->mask);
-      hc_argv[2] = (char *) PyUnicode_AsUTF8 (self->dict1);
-      hc_argv[3] = NULL;
+      if (!self->user_options->keyspace)
+      {
+        self->hc_argc = 3;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->hash, self->mask, self->dict1);
+      }
+      else
+      {
+        self->hc_argc = 2;
+        rebuild_hc_args(hc_argv, self->hc_argc, self->mask, self->dict1);
+      }
+
       self->user_options->hc_argc = self->hc_argc;
       self->user_options->hc_argv = hc_argv;
 
@@ -753,14 +801,18 @@ static PyObject *hashcat_hashcat_session_execute (hashcatObject * self, PyObject
   }
 
   int rtn;
-  pthread_t hThread;
 
-  Py_BEGIN_ALLOW_THREADS
+  if(self->no_threading){
+    rtn = hashcat_session_execute(self->hashcat_ctx);
+  } else {
+    pthread_t hThread;
 
-  rtn = pthread_create(&hThread, NULL, &hc_session_exe_thread, (void *)self);
+    Py_BEGIN_ALLOW_THREADS
 
-  Py_END_ALLOW_THREADS
+    rtn = pthread_create(&hThread, NULL, &hc_session_exe_thread, (void *)self);
 
+    Py_END_ALLOW_THREADS
+  }
 
   return Py_BuildValue ("i", rtn);
 }
@@ -1991,6 +2043,22 @@ static PyObject *hashcat_status_get_runtime_msec_dev (hashcatObject * self, PyOb
   rtn = status_get_runtime_msec_dev (self->hashcat_ctx, device_id);
   return Py_BuildValue ("d", rtn);
 
+}
+
+static PyObject *getno_threading (hashcatObject * self)
+{
+  return Py_BuildValue ("p", self->no_threading);
+}
+
+static int setno_threading (hashcatObject * self, PyObject * value)
+{
+  if (value == NULL)
+  {
+    PyErr_SetString (PyExc_TypeError, "Cannot delete no_threading attribute");
+    return -1;
+  }
+  self->no_threading = PyObject_IsTrue(value);
+  return 0;
 }
 
 
@@ -3326,7 +3394,6 @@ static int hashcat_setkeyspace (hashcatObject * self, PyObject * value, void *cl
 
     Py_INCREF (value);
     self->user_options->keyspace = 1;
-
   }
   else
   {
@@ -5407,6 +5474,12 @@ static int hashcat_setbrain_session_whitelist (hashcatObject * self, PyObject * 
 
 }
 
+// getter - words_base
+static PyObject *hashcat_getwords_base (hashcatObject * self)
+{
+  return Py_BuildValue("k", self->hashcat_ctx->status_ctx->words_base);
+}
+
 PyDoc_STRVAR(status_get_brain_rx_all__doc__,
 "status_get_brain_rx_all(device_id) -> str\n\n\
 Return total combine brain traffic of all devices.\n\n");
@@ -5952,8 +6025,6 @@ static int hashcat_setworkload_profile (hashcatObject * self, PyObject * value, 
 
 }
 
-
-
 /* method array */
 
 static PyMethodDef hashcat_methods[] = {
@@ -6044,7 +6115,7 @@ static PyMethodDef hashcat_methods[] = {
 
 
 static PyGetSetDef hashcat_getseters[] = {
-
+  {"no_threading", (getter) getno_threading, (setter) setno_threading, NULL, NULL},
   {"hash", (getter) hashcat_gethash, (setter) hashcat_sethash, hash__doc__, NULL},
   {"dict1", (getter) hashcat_getdict1, (setter) hashcat_setdict1, dict1__doc__, NULL},
   {"dict2", (getter) hashcat_getdict2, (setter) hashcat_setdict2, dict2__doc__, NULL},
@@ -6139,6 +6210,7 @@ static PyGetSetDef hashcat_getseters[] = {
   {"brain_session", (getter) hashcat_getbrain_session, (setter) hashcat_setbrain_session, brain_session__doc__, NULL},
   {"brain_session_whitelist", (getter) hashcat_getbrain_session_whitelist, (setter) hashcat_setbrain_session_whitelist, brain_session_whitelist__doc__, NULL},
   #endif
+  {"words_base", (getter) hashcat_getwords_base, NULL, NULL, NULL},
   {NULL},
 };
 
