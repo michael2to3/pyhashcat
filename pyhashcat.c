@@ -526,6 +526,29 @@ static void rebuild_hc_args(char **hc_argv, int arg_count, ...)
   hc_argv[arg_count] = NULL;
 }
 
+PyDoc_STRVAR(hashcat_session_init__doc__,
+"hashcat_session_init -> int\n\n\
+Initialize hashcat session. You don't need to do this manually thought\n\n");
+
+static PyObject *hashcat_hashcat_session_init (hashcatObject * self, PyObject * args, PyObject * kwargs){
+  char *default_py_path = "/usr/bin/";
+  char *default_hc_path = "/usr/local/share/hashcat";
+
+  char *py_path = getenv("PY_PATH") != NULL ? getenv("PY_PATH") : default_py_path;
+  char *hc_path = getenv("HC_PATH") != NULL ? getenv("HC_PATH") : default_hc_path;
+
+  static char *kwlist[] = {"py_path", "hc_path", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|ss", kwlist, &py_path, &hc_path))
+  {
+    return NULL;
+  }
+
+  self->rc_init = hashcat_session_init (self->hashcat_ctx, py_path, hc_path, 0, NULL, 0);
+  return Py_BuildValue ("i", self->rc_init);
+}
+
+
 PyDoc_STRVAR(hashcat_session_execute__doc__,
 "hashcat_session_execute -> int\n\n\
 Start hashcat cracking session in background thread.\n\n\
@@ -5982,6 +6005,115 @@ static int hashcat_setveracrypt_pim_stop (hashcatObject * self, PyObject * value
 
 }
 
+// https://github.com/hashcat/hashcat/blob/master/src/terminal.c#L1444
+static PyObject *get_backend_devices_info(hashcatObject *self){
+  PyObject* holder_obj = PyDict_New();
+
+  backend_ctx_t *backend_ctx = self->hashcat_ctx->backend_ctx;
+
+  if (backend_ctx->cuda && backend_ctx->cuda_devices_cnt){
+    PyObject *cuda_obj = PyDict_New();
+    PyDict_SetItemString(cuda_obj, "driver_version", PyLong_FromLong(backend_ctx->cuda_driver_version)); 
+
+    PyObject *devices = PyList_New(0);
+
+    for(int cuda_devices_idx = 0; cuda_devices_idx < backend_ctx->cuda_devices_cnt; ++cuda_devices_idx){
+      PyObject *cuda_device = PyDict_New();
+    
+      const int backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
+      const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      PyDict_SetItemString(cuda_device, "device_id", PyLong_FromLong(device_param->device_id));
+      PyDict_SetItemString(cuda_device, "device_name", PyUnicode_FromString(device_param->device_name));
+      PyDict_SetItemString(cuda_device, "device_processors", PyLong_FromUnsignedLong(device_param->device_processors));
+      PyDict_SetItemString(cuda_device, "device_global_mem", PyLong_FromUnsignedLongLong(device_param->device_global_mem));
+      PyDict_SetItemString(cuda_device, "device_available_mem", PyLong_FromUnsignedLongLong(device_param->device_available_mem));
+
+      PyList_Append(devices, cuda_device);
+    }
+    
+    PyDict_SetItemString(cuda_obj, "devices", devices); 
+    PyDict_SetItemString(holder_obj, "cuda", cuda_obj);
+  }
+
+  if (backend_ctx->hip && backend_ctx->hip_devices_cnt){
+    PyObject *hip_obj = PyDict_New();
+    PyDict_SetItemString(hip_obj, "runtime_version", PyLong_FromLong(backend_ctx->hip_runtimeVersion)); 
+
+    PyObject *devices = PyList_New(backend_ctx->hip_devices_cnt);
+
+    for (int hip_devices_idx = 0; hip_devices_idx < backend_ctx->hip_devices_cnt; hip_devices_idx++){
+      PyObject *hip_device = PyDict_New();
+
+      const int backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
+      const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      PyDict_SetItemString(hip_device, "device_id", PyLong_FromLong(device_param->device_id));
+      PyDict_SetItemString(hip_device, "device_name", PyUnicode_FromString(device_param->device_name));
+      PyDict_SetItemString(hip_device, "device_processors", PyLong_FromUnsignedLong(device_param->device_processors));
+      PyDict_SetItemString(hip_device, "device_global_mem", PyLong_FromUnsignedLongLong(device_param->device_global_mem));
+      PyDict_SetItemString(hip_device, "device_available_mem", PyLong_FromUnsignedLongLong(device_param->device_available_mem));
+
+      PyList_Append(devices, hip_device);
+    }
+
+    PyDict_SetItemString(hip_obj, "devices", devices); 
+    PyDict_SetItemString(holder_obj, "hip", hip_obj);
+  }
+
+  if (backend_ctx->ocl && backend_ctx->opencl_platforms_cnt){
+    PyObject *ocl_obj = PyDict_New();
+
+    PyObject *platforms = PyList_New(0);
+
+    cl_uint *opencl_platforms_devices_cnt = backend_ctx->opencl_platforms_devices_cnt;
+    char **opencl_platforms_vendor = backend_ctx->opencl_platforms_vendor;
+    char **opencl_platforms_version = backend_ctx->opencl_platforms_version;
+
+    for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < backend_ctx->opencl_platforms_cnt; opencl_platforms_idx++)
+    {
+      char     *opencl_platform_vendor       = opencl_platforms_vendor[opencl_platforms_idx];
+      char     *opencl_platform_version      = opencl_platforms_version[opencl_platforms_idx];
+      cl_uint   opencl_platform_devices_cnt  = opencl_platforms_devices_cnt[opencl_platforms_idx];
+      
+      // hide empty OpenCL platforms
+      if (opencl_platform_devices_cnt == 0) continue;
+
+      PyObject *platform = PyDict_New();
+
+      PyDict_SetItemString(platform, "opencl_platform_version", PyUnicode_FromString(opencl_platform_version));
+      PyDict_SetItemString(platform, "opencl_platform_vendor", PyUnicode_FromString(opencl_platform_vendor));
+
+      PyObject *devices = PyList_New(0);
+
+      for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
+      {
+        const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
+        const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+        PyObject *ocl_device = PyDict_New();
+
+        PyDict_SetItemString(ocl_device, "device_id", PyLong_FromLong(device_param->device_id));
+        PyDict_SetItemString(ocl_device, "device_name", PyUnicode_FromString(device_param->device_name));
+        PyDict_SetItemString(ocl_device, "device_processors", PyLong_FromUnsignedLong(device_param->device_processors));
+        PyDict_SetItemString(ocl_device, "device_global_mem", PyLong_FromUnsignedLongLong(device_param->device_maxmem_alloc));
+        PyDict_SetItemString(ocl_device, "device_global_mem", PyLong_FromUnsignedLongLong(device_param->device_global_mem));
+        PyDict_SetItemString(ocl_device, "device_available_mem", PyLong_FromUnsignedLongLong(device_param->device_available_mem));
+
+        PyList_Append(devices, ocl_device);
+      }
+
+      PyDict_SetItemString(platform, "devices", devices); 
+      PyList_Append(platforms, platform);
+    }
+
+    PyDict_SetItemString(ocl_obj, "platforms", platforms); 
+    PyDict_SetItemString(holder_obj, "ocl", ocl_obj);
+  }
+  
+  return holder_obj;
+}
+
 
 PyDoc_STRVAR(workload_profile__doc__,
 "workload_profile\tint\tEnable a specific workload profile, see pool below\n\n\
@@ -6043,6 +6175,7 @@ static PyMethodDef hashcat_methods[] = {
   {"reset", (PyCFunction) hashcat_reset, METH_NOARGS, reset__doc__},
   {"soft_reset", (PyCFunction) soft_reset, METH_NOARGS, soft_reset__doc__},
   {"status_reset", (PyCFunction) status_reset, METH_NOARGS, status_reset__doc__},
+  {"hashcat_session_init", (PyCFunction) hashcat_hashcat_session_init, METH_VARARGS|METH_KEYWORDS, hashcat_session_init__doc__},
   {"hashcat_session_execute", (PyCFunction) hashcat_hashcat_session_execute, METH_VARARGS|METH_KEYWORDS, hashcat_session_execute__doc__},
   {"hashcat_session_pause", (PyCFunction) hashcat_hashcat_session_pause, METH_NOARGS, hashcat_session_pause__doc__},
   {"hashcat_session_resume", (PyCFunction) hashcat_hashcat_session_resume, METH_NOARGS, hashcat_session_resume__doc__},
@@ -6121,6 +6254,7 @@ static PyMethodDef hashcat_methods[] = {
   {"status_get_brain_rx_all", (PyCFunction) hashcat_status_get_brain_rx_all, METH_NOARGS, status_get_brain_rx_all__doc__},
   {"hashcat_list_hashmodes", (PyCFunction) hashcat_list_hashmodes, METH_NOARGS, hashcat_list_hashmodes__doc__},
   {"get_event_log_msg", (PyCFunction) get_event_log_msg, METH_NOARGS, NULL},
+  {"get_backend_devices_info", (PyCFunction) get_backend_devices_info, METH_NOARGS, NULL},
   {NULL, NULL, 0, NULL},
 };
 
