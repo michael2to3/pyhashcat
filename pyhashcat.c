@@ -3176,6 +3176,7 @@ static int hashcat_setincrement_max (hashcatObject * self, PyObject * value, voi
 
   Py_INCREF (value);
   self->user_options->increment_max = PyLong_AsLong (value);
+  self->user_options->increment_max_chgd = true;
 
   return 0;
 
@@ -3212,6 +3213,7 @@ static int hashcat_setincrement_min (hashcatObject * self, PyObject * value, voi
 
   Py_INCREF (value);
   self->user_options->increment_min = PyLong_AsLong (value);
+  self->user_options->increment_min_chgd = true;
 
   return 0;
 
@@ -3341,6 +3343,7 @@ static int hashcat_setkernel_accel (hashcatObject * self, PyObject * value, void
 
   Py_INCREF (value);
   self->user_options->kernel_accel = PyLong_AsLong (value);
+  self->user_options->kernel_accel_chgd = true;
 
   return 0;
 
@@ -3378,6 +3381,7 @@ static int hashcat_setkernel_loops (hashcatObject * self, PyObject * value, void
 
   Py_INCREF (value);
   self->user_options->kernel_loops = PyLong_AsLong (value);
+  self->user_options->kernel_loops_chgd = true;
 
   return 0;
 
@@ -3515,6 +3519,7 @@ static int hashcat_setlimit (hashcatObject * self, PyObject * value, void *closu
 
   Py_INCREF (value);
   self->user_options->limit = PyLong_AsLong (value);
+  self->user_options->limit_chgd = true;
 
   return 0;
 
@@ -3883,6 +3888,7 @@ static int hashcat_setspin_damp (hashcatObject * self, PyObject * value, void *c
 
   Py_INCREF (value);
   self->user_options->spin_damp = PyLong_AsLong (value);
+  self->user_options->spin_damp_chgd = true;
 
   return 0;
 
@@ -4058,6 +4064,7 @@ static int hashcat_setbackend_vector_width (hashcatObject * self, PyObject * val
 
   Py_INCREF (value);
   self->user_options->backend_vector_width = PyLong_AsLong (value);
+  self->user_options->backend_vector_width_chgd = true;
 
   return 0;
 
@@ -4329,6 +4336,7 @@ static int hashcat_setoutfile_format (hashcatObject * self, PyObject * value, vo
 
   Py_INCREF (value);
   self->user_options->outfile_format = PyLong_AsLong (value);
+  self->user_options->outfile_format_chgd = true;
 
   return 0;
 
@@ -4558,6 +4566,7 @@ static int hashcat_setremove_timer (hashcatObject * self, PyObject * value, void
 
   Py_INCREF (value);
   self->user_options->remove_timer = PyLong_AsLong (value);
+  self->user_options->remove_timer_chgd = true;
 
   return 0;
 
@@ -4920,6 +4929,7 @@ static int hashcat_setrp_gen_seed (hashcatObject * self, PyObject * value, void 
 
   Py_INCREF (value);
   self->user_options->rp_gen_seed = PyLong_AsLong (value);
+  self->user_options->rp_gen_seed_chgd = true;
 
   return 0;
 
@@ -5040,6 +5050,7 @@ static int hashcat_setruntime(hashcatObject * self, PyObject * value, void *clos
 
   Py_INCREF (value);
   self->user_options->runtime = PyLong_AsLong (value);
+  self->user_options->runtime_chgd = true;
 
   return 0;
 
@@ -5076,6 +5087,7 @@ static int hashcat_setscrypt_tmto(hashcatObject * self, PyObject * value, void *
 
   Py_INCREF(value);
   self->user_options->scrypt_tmto = PyLong_AsLong (value);
+  self->user_options->scrypt_tmto_chgd = true;
 
   return 0;
 
@@ -5112,6 +5124,7 @@ static int hashcat_setsegment_size(hashcatObject * self, PyObject * value, void 
 
   Py_INCREF (value);
   self->user_options->segment_size = PyLong_AsLong (value);
+  self->user_options->segment_size_chgd = true;
 
   return 0;
 
@@ -5147,6 +5160,7 @@ static int hashcat_setseparator(hashcatObject * self, PyObject * value, void *cl
   }
 
   self->user_options->separator = (char *) PyUnicode_AsUTF8 (value);
+  self->user_options->separator_chgd = true;
 
   return 0;
 
@@ -5289,6 +5303,7 @@ static int hashcat_setbrain_host (hashcatObject * self, PyObject * value, void *
 
   Py_INCREF (value);
   self->user_options->brain_host = (char *) PyUnicode_AsUTF8 (value);
+  self->user_options->brain_host_chgd = true;
 
   return 0;
 
@@ -5327,8 +5342,9 @@ static int hashcat_setbrain_port(hashcatObject * self, PyObject * value, void *c
 
   Py_INCREF (value);
   self->user_options->brain_port = PyLong_AsLong(value);
-  return 0;
+  self->user_options->brain_port_chgd = true;
 
+  return 0;
 }
 
 
@@ -5447,6 +5463,7 @@ static int hashcat_setbrain_password (hashcatObject * self, PyObject * value, vo
 
   Py_INCREF (value);
   self->user_options->brain_password = (char *) PyUnicode_AsUTF8 (value);
+  self->user_options->brain_password_chgd = true;
 
   return 0;
 
@@ -5642,6 +5659,7 @@ static int hashcat_setskip (hashcatObject * self, PyObject * value, void *closur
 
   Py_INCREF (value);
   self->user_options->skip = PyLong_AsLong (value);
+  self->user_options->skip_chgd = true;
 
   return 0;
 
@@ -5963,6 +5981,7 @@ static int hashcat_setveracrypt_pim_start (hashcatObject * self, PyObject * valu
 
   Py_INCREF (value);
   self->user_options->veracrypt_pim_start = PyLong_AsLong (value);
+  self->user_options->veracrypt_pim_start_chgd = true;
 
   return 0;
 
@@ -6000,6 +6019,7 @@ static int hashcat_setveracrypt_pim_stop (hashcatObject * self, PyObject * value
 
   Py_INCREF (value);
   self->user_options->veracrypt_pim_stop = PyLong_AsLong (value);
+  self->user_options->veracrypt_pim_stop_chgd = true;
 
   return 0;
 
@@ -6153,6 +6173,7 @@ static int hashcat_setworkload_profile (hashcatObject * self, PyObject * value, 
 
   Py_INCREF (value);
   self->user_options->workload_profile = PyLong_AsLong (value);
+  self->user_options->workload_profile_chgd = true;
 
   return 0;
 
